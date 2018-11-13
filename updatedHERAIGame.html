@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Hexapawn</title>
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+        
+	<style type="text/css">
+		html, body{
+			padding: 0;
+			margin: 0;
+			padding-top: 6vh;
+		}
+		button.grid{
+			border: 1px solid black;
+			font-size:12vh;
+			height:15vh;
+			width:15vh;
+			line-height:5vh;
+			vertical-align:middle;
+			background:#fff;
+			text-align:center;
+		}
+		button.gray{
+			background: gray;
+		}
+		.board{
+			background: white;
+			font-size:50px;
+    		text-align:center;
+    		padding: 0;
+    		margin: auto;
+    
+		}
+		button:focus{
+			outline:none;
+		}
+		button.selected{
+			border: yellow 3px solid;
+
+		}
+		#restart{
+			font-size: 2vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding:10px;
+			margin: auto;
+			margin-top: 10px;
+		}
+		#score{
+			font-size: 4.5vh;
+			align-items: center;
+			justify-content: center;
+			margin: auto;
+			padding-bottom: 10px;
+			padding-left: 50px;	
+		}
+		#text{
+			font-size: 4vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding:10px;
+			margin: auto;
+			margin-top: 10px;	
+		}
+
+	</style>
+</head>
+<script type="text/javascript">
+	var board, boardStr = '', selectMove = {first: null, second: null}, lastMove = {board:'', moveIndex: 0}, Data = [], score = {computer: 0, player: 0}, turn; 
+	//Create HTML elements for the 3x3 board 
+	function createBoardTags(){
+		document.writeln("<div class = 'container' id = 'score'><div>Player : <span id ='playerS'>0</span></div><div>Computer : <span id = 'computerS'>0</span></div></div>")
+		document.writeln("<table class = 'board'>")
+		for(var i = 0; i < 3; i++){
+			document.writeln("<tr>")
+			for(var j = 0; j < 3; j++){
+				var id = 3*i + j
+				if( (i+j) % 2 == 0){
+					document.writeln("<td><button class = 'gray grid' id = '" + id + "'></button></td>")	
+				}
+				else document.writeln("<td><button class = 'grid' id = '" + id + "'></button></td>")
+				document.getElementById(id).addEventListener("click", handleClick)
+			}
+			document.writeln("</tr>")
+		}
+		document.writeln("</table>")	
+		document.writeln("<button class = 'btn btn-primary btn-lg' id = 'restart'>Restart</button>")	
+		document.getElementById('restart').addEventListener('click', start)
+		document.writeln("<div id = 'text'><div>")
+	} 
+	//Generate the position of the board at start
+	function newBoardPos(){
+		board = [[], [], []]
+		for(var i = 0; i < 3; i++){
+			for(var j = 0; j < 3; j++){
+				if(i == 0){
+					board[i][j] = 'B'
+				}
+				else if (i == 2){
+					board[i][j] = 'W'
+				}
+				else{
+					board[i][j] = ' '
+				}
+			}
+		}
+	}
+	//Update the board HTML text based on the 2d arrays board
+	function updateBoardTag(){
+		boardStr = ''
+		for(var i = 0; i < 3; i++){
+			for(var j = 0; j < 3; j++){
+				var id = 3*i + j
+				if(board[i][j] == 'W') document.getElementById(id).innerHTML = "&#x2659"
+				else if (board[i][j] == 'B') document.getElementById(id).innerHTML = "&#x265F"
+				else document.getElementById(id).innerHTML = ' '
+				boardStr += board[i][j]
+			}
+		}
+	}
+	//Handle the click on the square grid. Make sure the player select the white one, and the player can only click the second time (for a move) if the move is legal
+	function handleClick(event){
+		if(selectMove.first == null && event.target.innerHTML == '♙'){
+			selectMove.first = Number(event.target.id)
+			document.getElementById(selectMove.first).classList.add('selected')
+		}
+		else if(selectMove.first != null){
+			if(event.target.innerHTML == '♙'){
+				document.getElementById(selectMove.first).classList.remove('selected')	
+				selectMove.first = selectMove.second = null
+			}
+			else{
+				selectMove.second = Number(event.target.id)
+				var posMove = possibleMove()
+				var move = {x: selectMove.first, y: selectMove.second}
+				for(var k = 0; k < posMove.length; k++){
+					//Move sure the move is legal
+					if(posMove[k].x == move.x && posMove[k].y == move.y){
+						board[Math.floor(move.x/3)][move.x%3] = ' '
+						board[Math.floor(move.y/3)][move.y%3] = 'W'
+						document.getElementById(selectMove.first).classList.remove('selected')	
+						selectMove.first = selectMove.second = null
+						nextTurn()
+					}
+				}
+
+			}
+		} 
+	}
+	//Handle the next turn and end the game if it is over
+	function nextTurn(){
+		updateBoardTag()
+		if(turn == 0) turn = 1
+		else turn = 0	
+		var result = isEnd()
+		if(result != -1){
+			finish(result)
+		}
+		else{
+			if(turn == 1){
+				//Make a move for computer
+				result = computerMove()
+				if(result == -1) nextTurn()
+				else finish(result)
+			}
+		}
+	}
+	//Generate all possible moves based on the turn and the current board position
+	function possibleMove(){
+		var step, current, opponent, moves = []
+		if(turn == 0){ // for player turn
+			current = 'W'
+			opponent = 'B'
+			step = -1
+		} 
+		else { // for computer turn
+			current = 'B'
+			opponent = 'W'
+			step = 1
+		}
+		for(var i = 0; i < 3; i++){
+			for(var j = 0; j < 3; j++){
+				if(board[i][j] == current){
+					for(var t = j - 1; t < j + 2; t++){
+						if(t > -1 && t < 3 && (i+step) > -1 && (i+step) < 3){
+							if((board[i+step][t] == opponent && t != j) || (board[i+step][t] == ' ' && t == j)){
+								moves.push({x: 3*i + j, y: (i+step)*3 + t, score: 0})
+							}
+						}
+					}
+				}
+			}
+		}
+		return moves
+
+	}
+	//Check if the game is over or not by check the board
+	function isEnd(){
+		var white = 0, black = 0
+		if(possibleMove().length == 0){
+			if(turn == 0) return 1
+			else return 0
+		}
+		for(var i = 0; i < 3; i++){
+			for(var j = 0; j < 3; j ++){
+				if(board[0][j] == 'W') return 0 
+				else if (board[2][j] == 'B') return 1
+				if(board[i][j] == 'W') white++
+				else if(board[i][j] == 'B') black++
+			}
+		}
+		if(white == 0) return 1
+		else if(black == 0 ) return 0
+		else return -1
+	}
+	//Handle the game if it is over
+	function finish(win){
+		if(win == 1){
+			document.getElementById('text').innerHTML = 'COMPUTER WINS :('
+			score.computer++
+		}
+		else{
+			document.getElementById('text').innerHTML = 'YOU WIN !!!'
+			score.player++
+		}
+		updateData(win)
+		document.getElementById('playerS').innerHTML = score.player
+		document.getElementById('computerS').innerHTML = score.computer	
+		selectMove.first = -1	
+	}
+	//Update the data for computer, if computer wins, 1 point will be added to the score of the lastmove. Otherwise, 1 point will be subtracted. Remove the move from the data if the score below 0. 
+	function updateData(win){
+		if(win == 0){
+			for(var i = 0; i < Data.length; i++){
+				if(Data[i].board == lastMove.board){
+					if(Data[i].move[lastMove.moveIndex].score == 0){
+						Data[i].move.splice(lastMove.moveIndex, 1)	
+					}
+					else Data[i].move[lastMove.moveIndex].score--
+					return
+				}
+			}
+		}
+		else{
+			for(var i = 0; i< Data.length; i++){
+				if(Data[i].board == lastMove.board){
+					Data[i].move[lastMove.moveIndex].score++
+				}
+			}	
+		}
+
+	}
+	//Move a move for computer
+	function computerMove(){
+		var moves, index, isSaved = true;
+		//Retrieve the move from the data
+		for(var i = 0; i < Data.length; i++){
+			if(Data[i].board == boardStr){
+				moves = Data[i].move
+				break
+			}
+		}
+		if(!moves){
+			//If there is no move for that board position, then get the possible moves.
+			moves = possibleMove()
+			isSaved = false
+		}
+		if(moves.length == 0) return 0;
+		index = 0
+		for(var i = 0; i < moves.length; i++){
+			if(moves[i].score > moves[index].score){
+				index = i
+			}
+		}
+		board[Math.floor(moves[index].x/3)][Math.floor(moves[index].x%3)] = ' '
+		board[Math.floor(moves[index].y/3)][Math.floor(moves[index].y%3)] = 'B'
+		lastMove.board = boardStr
+		lastMove.moveIndex = index
+		if(isSaved == false) Data.push({board: boardStr, move: moves})
+		updateBoardTag()
+		return -1
+	}
+	createBoardTags()
+	//Start the new game
+	function start(){
+		turn = 0
+		selectMove.first = selectMove.second = null
+		document.getElementById('text').innerHTML = ''
+		newBoardPos()
+		updateBoardTag()
+	}
+</script>
+<body class= 'container col-md-4 col-md-offset-4 p-5' onload = "start()">
+
+</body>
+
+</html>
