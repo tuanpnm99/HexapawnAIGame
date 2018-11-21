@@ -1,4 +1,4 @@
-# HexapawnAIGame ([Try it Here](https://www.cs.drexel.edu/~tmp346/upgratedHexapawnAIGame.html))
+# HexapawnAIGame ([Try It Here](https://www.cs.drexel.edu/~tmp346/upgratedHexapawnAIGame.html))
 This is a simple game called Hexapawn Educable Robot described in [this article](https://www.gwern.net/docs/rl/1991-gardner-ch8amatchboxgamelearningmachine.pdf). The player will play against the computer. The computer learns from experience playing with the player to get better moves. This game gives a glimpse into some AI techniques.
 ## How To Play
 As described in the article, Hexapawn is played on a 3 x 3 board, with three chess
